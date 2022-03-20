@@ -1,5 +1,6 @@
 //	https://github.com/tkaczenko/WavReader/blob/master/WavReader/WavReader.cpp
 //  https://cplusplus.com/forum/general/265589/
+//  https://github.com/adamstark/AudioFile/blob/master/README.md
 
 #define _CRT_SECURE_NO_DEPRECATE
 
@@ -18,6 +19,11 @@
 #include <cmath>
 #include "string.h"
 #include "memory.h"
+
+
+#include "AudioFile.h"								// Include Stark
+AudioFile<double> wav;								// Stark
+//wav.load("C:/Users/Mï¿½szï¿½ros Arnold/Documents/Visual Studio 2015/Projects/Wav_with_Stark/Wav_with_Stark.wav");
 
 using namespace std;
 using std::cin;
@@ -64,13 +70,29 @@ int main(int argc, char* argv[])
 	vector<double> amplitudes;																											// Real points
 	vector<complex<double>> input;																										// Just for initialisation WavOpen - Read function
 
-	//	WavOpen("C:/Users/Mészáros Arnold/Documents/visual studio 2015/Projects/Project4/input.wav", "output name", 0, amplitudes, input);	// Gives back data from wav
+	wav.load("input.wav");
+	//wav.load("Wav_with_Stark.wav");
+
+																																	//	WavOpen("C:/Users/Mï¿½szï¿½ros Arnold/Documents/visual studio 2015/Projects/Project4/input.wav", "output name", 0, amplitudes, input);	// Gives back data from wav
 	WavOpen("input.wav", "output name", 0, amplitudes, input);	// Gives back data from wav
 
 	size_t size = amplitudes.size();																									// Number equals to samples
 	const int new_size = resize(size);																									// Nearest number power of 2
 	int log2N = log2(new_size);																											// log2 base of nearest number
 	cout << "Number of Vector elements: " << size << ", numer of new elements: " << new_size << ", with log = " << log2N << '\n';		// Checking values
+	cout << '\n';
+
+	cout << "Stark algorithm data: " << '\n';														// Checking values Stark values
+	cout << '\n';
+	int sampleRate = wav.getSampleRate();
+	int bitDepth = wav.getBitDepth();
+	int numSamples = wav.getNumSamplesPerChannel();
+	double lengthInSeconds = wav.getLengthInSeconds();
+	int numChannels = wav.getNumChannels();
+	bool isMono = wav.isMono();
+	bool isStereo = wav.isStereo();
+	cout << "SampleRate: " << sampleRate << ", bitDepth: " << bitDepth << ", numSamples: " << numSamples << ", lenghtS: " << lengthInSeconds << '\n';		// Checking values
+	cout << "Stark over " << '\n';																	// End of Checking Stark values
 	cout << '\n';
 
 	amplitudes.resize(new_size);																										// Resizing real data to nearest number power of 2
@@ -91,7 +113,7 @@ int main(int argc, char* argv[])
 	// Forward transform
 	FFT(cvec.data(), fft.data(), log2N);
 	//print("\nTransform:", fft.data(), log2N);
-	
+
 	// Generate an array, which contains the frequencies where the gaussian function will be generated. It contains 10 elements
 	int gauss_freq[10] = { 31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
 
@@ -107,10 +129,32 @@ int main(int argc, char* argv[])
 	//apply gaussian filter
 	//for(int i = 0; i < N; i++ ) { ft[i] += ft[i] * gaussian_function; }
 
-	iFFT(fft.data(), ifft.data(), log2N);   
+	iFFT(fft.data(), ifft.data(), log2N);
 	//print("\nInvert:", ifft.data(), log2N);
 
-	WavOpen("input.wav", "output2.wav", 1, amplitudes, ifft);		// 1 for write, unified function
+	//-------------------------------------------------------------------------------------------------------
+	//vector<complex<double>> *new_ifft;
+	//std::vector<complex<double>> new_ifft = ifft.data;
+	/*
+	short int *value = new short int[samples_count];
+	//Reading data
+	for (int i = 0; i < samples_count; i++)
+	{
+		fread(&value[i], sample_size, 1, fin);
+	*/
+	std::vector<complex<double>> *new_ifft = ifft.data[sampleRate];
+
+	for (int i = 0; i < wav.getNumSamplesPerChannel(); i++)
+	{
+		wav.samples[i] = &new_ifft;
+	};
+	//--------------------------------------------------------------------------------------------------------
+
+	std::string outputFilePath = "quieter-audio-filer.wav"; // change this to somewhere useful for you
+	wav.save(outputFilePath, AudioFileFormat::Wave);
+
+
+	//WavOpen("input.wav", "output2.wav", 1, amplitudes, ifft);		// 1 for write, unified function
 	cout << '\n';
 	system("pause");
 
@@ -195,7 +239,7 @@ int resize(int samples)
 
 // Wav file open and read
 /*
-	-openwav(open_file, write_file, mode(1 for read, 2 for write - make it with if), vector)
+-openwav(open_file, write_file, mode(1 for read, 2 for write - make it with if), vector)
 */
 void WavOpen(const char* fileName, const char* writeName, int mode, vector<double> &V, vector<complex<double>> &iFFT)
 {
@@ -266,16 +310,16 @@ void WavOpen(const char* fileName, const char* writeName, int mode, vector<doubl
 		fclose(fin);
 	}
 	else if (read_or_write == 1)
-	{	
+	{
 		printf("\nWriting new Wav started. \n");
 		/*
 		FILE* fp = fopen(writeName, "wb");
 
-		if (!fp) 
+		if (!fp)
 		{
-			fprintf(stderr, "Couldn't open the file \"%s\"\n", writeName);
-			//exit(0);
-			system("pause");
+		fprintf(stderr, "Couldn't open the file \"%s\"\n", writeName);
+		//exit(0);
+		system("pause");
 		}
 		*/
 

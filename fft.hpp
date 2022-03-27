@@ -25,6 +25,7 @@ using namespace std;
 const double pi = 3.14159265358979323846;
 using Complex = complex<double>;
 
+/*
 // Fast Fourier Transform
 void FFT(Complex f[], Complex ftilde[], int log2N)
 {
@@ -84,7 +85,7 @@ void iFFT(Complex ftilde[], Complex f[], int log2N)
 
 	for (int m = 0; m < N; m++) ftilde[m] = conj(ftilde[m]);      // Only necessary to reinstate ftilde
 }
-
+*/
 void fft(Complex x[],int size)
 {
 	// DFT
@@ -126,6 +127,51 @@ void fft(Complex x[],int size)
 			x[a] = x[b];
 			x[b] = t;
 		}
+	}
+}
+
+// inverse fft (in-place)
+void ifft(complex<double> x[], int n)
+{
+	
+	
+
+	for(int i = 0; i<n; i++){
+		x[i] = std::conj(x[i]);
+	}
+	
+
+    // forward fft
+    fft( x , n);
+ 
+    // conjugate the complex numbers again
+    for(int i = 0; i<n; i++){
+		x[i] = std::conj(x[i]);
+	}
+	
+	for(int i = 0; i<n; i++){
+		x[i] /= n;
+	}
+ 
+
+}
+
+void getFreq(double freq[], int n, int sampleRate){
+	double d = 1.0/sampleRate;
+	double val = 1.0/(n*d);
+	int N= (n-1)/2 + 1;
+
+	cout << "d: " << d <<"   val: " << val << "   N = " << N << endl;
+	
+	for (int i = 0; i<=N; i++ ){
+		freq[i] = i*val;
+	}
+	
+
+	int backWards = n/2;
+	for(int i = N+1 ;i<=n;i++){
+			freq[i] = -backWards*val;
+			backWards--;
 	}
 }
  

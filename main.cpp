@@ -26,7 +26,7 @@ int resize(int samples)
 
 
 int main(){
-    const std::string filePath = "guitar_mono.wav"; //get input file
+    const std::string filePath = "sine-wave.wav"; //get input file
 
     
     AudioFile<double> audioFile;  // audiFile (vector)
@@ -35,6 +35,7 @@ int main(){
 
     AudioFile<double> outputAudio;
 
+    
 
     bool loadedOK = audioFile.load (filePath); //read file
     if(!loadedOK)
@@ -108,20 +109,20 @@ int main(){
 void writeSineWaveToAudioFile()
 {
       AudioFile<float> a;
-      a.setNumChannels (2);
+      a.setNumChannels (1);
       a.setNumSamplesPerChannel(10000);
 
-      const float sampleRate = 10000.f;
+      const float sampleRate = 44800.f;
       const float freq = 440.f;
 
-      for (int i = 0; i < a.getNumSamplesPerChannel(); channel0++)
+      for (int i = 0; i < a.getNumSamplesPerChannel(); i++)
       {
           for (int channel0 = 0; channel0 < a.getNumChannels(); channel0++){
             a.samples[channel0][i] = sin((static_cast<float> (i) / sampleRate) * freq * 2.f * M_PI);
           }
       }
 
-       std::string filePath = "sine-wave.wav"; // change this to somewhere useful for you
+       string filePath = "sine-wave.wav"; // change this to somewhere useful for you
         a.save ("sine-wave.wav", AudioFileFormat::Wave);
 
 }

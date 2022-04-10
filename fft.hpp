@@ -4,89 +4,28 @@
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include <iostream>
-#include <algorithm>		// For std::transform
+#include <algorithm> // For std::transform
 #include <string>
 #include <istream>
 #include <fstream>
 #include <cstdint>
-#include <stdio.h> 
+#include <stdio.h>
 #include <vector>
 #include <chrono>
 #include <iomanip>
 #include <complex>
 #include <cstdio>
 #include <cmath>
+#include <math.h>
 #include "string.h"
 #include "memory.h"
 
 using namespace std;
 
-
 const double pi = 3.14159265358979323846;
 using Complex = complex<double>;
 
-/*
-// Fast Fourier Transform
-void FFT(Complex f[], Complex ftilde[], int log2N)
-{
-	int N = 1 << log2N;
-	cout << "N: " <<N<<endl;
-	cout << "LOG2N: " << log2N<<endl;
-	int iii;
-	// Reorder
-	for (int i = 0; i < N; i++)
-	{
-		int ii = 0, x = i;
-		for (int j = 0; j < log2N; j++)
-		{
-			ii <<= 1;
-			ii |= (x & 1);
-			x >>= 1;
-		}
-		ftilde[ii] = f[i];
-		iii = ii;
-	}
-
-	cout  << "ii: " << iii << endl;
-
-	for (int s = 1; s <= log2N; s++)
-	{
-		int m = 1 << s;
-		int m2 = m / 2;
-		Complex w = 1.0;
-		Complex wm = polar(1.0, -pi / m2);
-		for (int j = 0; j < m2; j++)
-		{
-			for (int k = j; k < N; k += m)
-			{
-				Complex t = w * ftilde[k + m2];
-				Complex u = ftilde[k];
-				ftilde[k] = u + t;
-				ftilde[k + m2] = u - t;
-			}
-			w *= wm;
-		}
-		
-	}
-
-}
-
-// Inverse Fast Fourier Transform
-void iFFT(Complex ftilde[], Complex f[], int log2N)
-{
-	int N = 1 << log2N;
-
-	for (int m = 0; m < N; m++) ftilde[m] = conj(ftilde[m]);      // Apply conjugate (reversed below)
-
-	FFT(ftilde, f, log2N);
-
-	double factor = 1.0 / N;
-	for (int m = 0; m < N; m++) f[m] = conj(f[m]) * factor;
-
-	for (int m = 0; m < N; m++) ftilde[m] = conj(ftilde[m]);      // Only necessary to reinstate ftilde
-}
-*/
-void fft(Complex x[],int size)
+void fft(Complex x[], int size)
 {
 	// DFT
 	unsigned int N = size, k = N, n;
@@ -131,47 +70,64 @@ void fft(Complex x[],int size)
 }
 
 // inverse fft (in-place)
-void ifft(complex<double> x[], int n)
+void ifft(Complex x[], Complex output[], int n)
 {
-	
-	
+	vector<Complex> x1;
 
-	for(int i = 0; i<n; i++){
-		x[i] = std::conj(x[i]);
-	}
-	
+	for (int i = 0; i < n; i++)
+		x1.push_back(x[i]);
 
-    // forward fft
-    fft( x , n);
- 
-    // conjugate the complex numbers again
-    for(int i = 0; i<n; i++){
-		x[i] = std::conj(x[i]);
+	for (int i = 0; i < n; i++){
+		x1[i] = std::conj(x1[i]);
+		//cout << x1[i] << endl;
 	}
-	
-	for(int i = 0; i<n; i++){
-		x[i] /= n;
-	}
- 
 
+	// forward fft
+	fft(x1.data(), n);
+
+	// conjugate the complex numbers again
+	for (int i = 0; i < n; i++)
+		x1[i] = std::conj(x1[i]);
+
+	for (int i = 0; i < n; i++)
+		x1[i] /= n;
+
+	output = x1.data();
 }
 
-void getFreq(double freq[], int n, int sampleRate){
-	double d = 1.0/sampleRate;
-	double val = 1.0/(n*d);
-	int N= (n-1)/2 + 1;
+void getFreq(double freq[], int n, int sampleRate)
+{
+	double d = 1.0 / sampleRate;
+	double val = 1.0 / (n * d);
+	int N = (n - 1) / 2 + 1;
 
-	cout << "d: " << d <<"   val: " << val << "   N = " << N << endl;
-	
-	for (int i = 0; i<=N; i++ ){
-		freq[i] = i*val;
+	cout << "d: " << d << "   val: " << val << "   N = " << N << endl;
+
+	for (int i = 0; i <= N; i++)
+	{
+		freq[i] = i * val;
 	}
-	
 
-	int backWards = n/2;
-	for(int i = N+1 ;i<=n;i++){
-			freq[i] = -backWards*val;
-			backWards--;
+	int backWards = n / 2;
+	for (int i = N + 1; i <= n; i++)
+	{
+		freq[i] = -backWards * val;
+		backWards--;
 	}
 }
- 
+
+/*
+void idft(Complex x[], Complex output[], int n)
+{
+
+	for (int i = 0; i < n; i++)
+	{
+		for (k = 0; k < n; k++)
+		{
+			int theta = (2 * 3.141592 * k * n) / N;
+			x[n] = x[n] + Xr[k] * cos(theta) + Xi[k] * sin(theta);
+		}
+		x[n] = x[n] / N;
+	}
+}
+*/

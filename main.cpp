@@ -44,47 +44,45 @@ int main(){
     
     size_t newSize = resize(audioFile.getNumSamplesPerChannel());  
     audioFile.samples[0].resize(newSize);                   //resize to the closes 2 exponential, fill with 0's 
-    int log2N = log2(newSize);	
+    for(int i = oldSize; i<newSize; i++)
+        audioFile.samples[0][i];
 
+    int log2N = log2(newSize);	
 
     for(int i = 0; i<audioFile.getNumSamplesPerChannel(); i++)
         audioFileComplex.push_back(audioFile.samples[0][i]);   //convert double to complex double
                                                                //fill imaginary numbers with 0
     
-    
     //int numberOfFrequencySamples = fftFreqSample(audioFile.getNumSamplesPerChannel()); 
     vector<complex<double>> audioFileFFT(audioFile.getNumSamplesPerChannel());
-
     
     fft(audioFileComplex.data(), audioFile.getNumSamplesPerChannel());
+
     
-    cout<<"    data size: " << audioFile.getNumSamplesPerChannel() << endl;
-    cout<<"fft data size: " << audioFileComplex.size()<<endl;
-
-
-
     vector<double> freq(audioFile.getNumSamplesPerChannel());
     vector<double> gauss(audioFile.getNumSamplesPerChannel());
     vector<complex<double>> filtered(audioFile.getNumSamplesPerChannel());
     vector<double> filteredData(audioFile.getNumSamplesPerChannel());
-    
+    vector<complex<double>> ifftOutput(audioFile.getNumSamplesPerChannel());
+
+
 
     getFreq(freq.data(), audioFile.getNumSamplesPerChannel(),audioFile.getSampleRate());
 
-    
     generate_gaussian(gauss.data(), audioFile.getNumSamplesPerChannel(),freq.data());
 
     filtered = audioFileComplex;
+    cout << "filtered at 0 before gauss : " <<filtered[0] << endl;
+
     
-    for(int i = 0; i<audioFile.getNumSamplesPerChannel(); i++){
-        filtered[i] += filtered[i]*gauss[i];
-    }
+    //for(int i = 1; i<audioFile.getNumSamplesPerChannel(); i++)
+    //    filtered[i] += filtered[i]*gauss[i];
 
+    filtered[0] = 0;
+    
+    ifft(filtered.data(),ifftOutput.data(), audioFile.getNumSamplesPerChannel());
 
-
-    //iFFT(filteredData.data(),filteredFFT.data(),audioFile.getNumSamplesPerChannel());
-
-    ifft(filtered.data(),audioFile.getNumSamplesPerChannel());
+    cout << "ifft size" << filtered.size()<<endl;
 
     filtered.resize(oldSize);
 
@@ -92,12 +90,8 @@ int main(){
         filteredData[i] = filtered[i].real();
     }
 
-
     outputAudio.setNumChannels (1);
     outputAudio.setNumSamplesPerChannel (oldSize);
-
-
-
 
 
     for (int i = 0; i < outputAudio.getNumSamplesPerChannel(); i++)
@@ -109,7 +103,6 @@ int main(){
         }
 
     outputAudio.save("output.wav", AudioFileFormat::Wave);
-    
 }
 
 

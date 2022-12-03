@@ -25,10 +25,13 @@ using namespace std;
 const double pi = 3.14159265358979323846;
 using Complex = complex<double>;
 
-void fft(Complex x[], int size)
+vector<Complex> fft(vector<Complex> in)
 {
+
+	vector<Complex> x(in);
+
 	// DFT
-	unsigned int N = size, k = N, n;
+	unsigned int N = x.size(), k = N, n;
 	double thetaT = 3.14159265358979323846264338328L / N;
 	Complex phiT = Complex(cos(thetaT), -sin(thetaT)), T;
 	while (k > 1)
@@ -67,32 +70,33 @@ void fft(Complex x[], int size)
 			x[b] = t;
 		}
 	}
+	
+	return x;
+	
 }
 
+
 // inverse fft (in-place)
-void ifft(Complex x[], Complex output[], int n)
+vector<Complex> ifft(vector<Complex> in)
 {
-	vector<Complex> x1;
-
-	for (int i = 0; i < n; i++)
-		x1.push_back(x[i]);
-
-	for (int i = 0; i < n; i++){
+	vector<Complex> x1(in);
+	size_t size = in.size();
+	for (int i = 0; i < size; i++){
 		x1[i] = std::conj(x1[i]);
 		//cout << x1[i] << endl;
 	}
-
+	
 	// forward fft
-	fft(x1.data(), n);
+	x1 = fft(x1);
 
 	// conjugate the complex numbers again
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < size; i++)
 		x1[i] = std::conj(x1[i]);
 
-	for (int i = 0; i < n; i++)
-		x1[i] /= n;
+	for (int i = 0; i < size; i++)
+		x1[i] /= size;
 
-	output = x1.data();
+	return x1;
 }
 
 void getFreq(double freq[], int n, int sampleRate)
@@ -115,19 +119,16 @@ void getFreq(double freq[], int n, int sampleRate)
 		backWards--;
 	}
 }
-
 /*
-void idft(Complex x[], Complex output[], int n)
-{
+vector<complex<double>> normalize(vector<complex<double>> signal){
+	vector<complex<double>> out(signal);
 
-	for (int i = 0; i < n; i++)
-	{
-		for (k = 0; k < n; k++)
-		{
-			int theta = (2 * 3.141592 * k * n) / N;
-			x[n] = x[n] + Xr[k] * cos(theta) + Xi[k] * sin(theta);
-		}
-		x[n] = x[n] / N;
+	complex<double> maxElement = *max_element(signal.begin(),signal.end());
+
+	for(int i = 0; i<signal.size(); i++){
+		out[i]/=maxElement;
 	}
+
+	return out;
 }
 */

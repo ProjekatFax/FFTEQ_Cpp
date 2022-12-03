@@ -26,76 +26,72 @@ int resize(int samples)
 
 
 int main(){
-    const std::string filePath = "sine-wave.wav"; //get input file
+    const std::string filePath = "guitar_mono.wav"; //get input file
 
     
     AudioFile<double> audioFile;  // audiFile (vector)
     vector<complex<double>> audioFileComplex; //audiofile converted to complex 
                                               //so it can be used in in fft function
-
-    AudioFile<double> outputAudio;
-
-    
+    vector<complex<double>> transform;
+    size_t oldSize;
+    size_t newSize;
+    float sampleRate;
 
     bool loadedOK = audioFile.load (filePath); //read file
+
     if(!loadedOK)
         cout<<"problem with reading the wav file";
     
-    size_t oldSize = audioFile.getNumSamplesPerChannel();
+    oldSize = audioFile.getNumSamplesPerChannel();
+    sampleRate = audioFile.getSampleRate();
+
+    cout<<"sample rate: " << sampleRate << "number of channels " << audioFile.getNumChannels() << endl;
     
-    size_t newSize = resize(audioFile.getNumSamplesPerChannel());  
+    newSize = resize(audioFile.getNumSamplesPerChannel());  
     audioFile.samples[0].resize(newSize);                   //resize to the closes 2 exponential, fill with 0's 
     for(int i = oldSize; i<newSize; i++)
-        audioFile.samples[0][i];
-
-    int log2N = log2(newSize);	
+        audioFile.samples[0][i] = 0;
 
     for(int i = 0; i<audioFile.getNumSamplesPerChannel(); i++)
         audioFileComplex.push_back(audioFile.samples[0][i]);   //convert double to complex double
                                                                //fill imaginary numbers with 0
     
-    //int numberOfFrequencySamples = fftFreqSample(audioFile.getNumSamplesPerChannel()); 
-    vector<complex<double>> audioFileFFT(audioFile.getNumSamplesPerChannel());
-    
-    fft(audioFileComplex.data(), audioFile.getNumSamplesPerChannel());
+
+    transform = fft(audioFileComplex);
 
     
     vector<double> freq(audioFile.getNumSamplesPerChannel());
-    vector<double> gauss(audioFile.getNumSamplesPerChannel());
-    vector<complex<double>> filtered(audioFile.getNumSamplesPerChannel());
-    vector<double> filteredData(audioFile.getNumSamplesPerChannel());
-    vector<complex<double>> ifftOutput(audioFile.getNumSamplesPerChannel());
+    vector<double> gauss;
+    vector<complex<double>> filteredTransform(transform);
+    vector<complex<double>> ifftOutput;
+    vector<double> filteredData(oldSize);
 
 
 
-    getFreq(freq.data(), audioFile.getNumSamplesPerChannel(),audioFile.getSampleRate());
+    getFreq(freq.data(), audioFile.getNumSamplesPerChannel(),audioFile.getSampleRate()); 
 
-    generate_gaussian(gauss.data(), audioFile.getNumSamplesPerChannel(),freq.data());
+    gauss = generate_gaussian(freq);
 
-    filtered = audioFileComplex;
-    cout << "filtered at 0 before gauss : " <<filtered[0] << endl;
+    for(int i = 0; i<freq.size(); i++)
+        filteredTransform[i] += filteredTransform[i] * gauss[i];
 
     
-    //for(int i = 1; i<audioFile.getNumSamplesPerChannel(); i++)
-    //    filtered[i] += filtered[i]*gauss[i];
+    AudioFile<double> outputAudio;
+    ifftOutput = ifft(filteredTransform);
+    ifftOutput.resize(oldSize);
 
-    filtered[0] = 0;
-    
-    ifft(filtered.data(),ifftOutput.data(), audioFile.getNumSamplesPerChannel());
-
-    cout << "ifft size" << filtered.size()<<endl;
-
-    filtered.resize(oldSize);
-
-    for(int i = 0; i<=oldSize;i++){
-        filteredData[i] = filtered[i].real();
+    for(int i = 0; i<ifftOutput.size();i++){
+        filteredData[i] = ifftOutput[i].real();
     }
 
-    outputAudio.setNumChannels (1);
-    outputAudio.setNumSamplesPerChannel (oldSize);
 
 
-    for (int i = 0; i < outputAudio.getNumSamplesPerChannel(); i++)
+    outputAudio.setNumChannels (2);
+    outputAudio.setNumSamplesPerChannel (ifftOutput.size());
+    outputAudio.setSampleRate(sampleRate);
+ 
+
+    for (int i = 0; i < ifftOutput.size(); i++)
         {
             for (int channel = 0; channel < outputAudio.getNumChannels(); channel++)
             {
@@ -104,26 +100,5 @@ int main(){
         }
 
     outputAudio.save("output.wav", AudioFileFormat::Wave);
-}
-
-void writeSineWaveToAudioFile()
-{
-      AudioFile<float> a;
-      a.setNumChannels (1);
-      a.setNumSamplesPerChannel(10000);
-
-      const float sampleRate = 44800.f;
-      const float freq = 440.f;
-
-      for (int i = 0; i < a.getNumSamplesPerChannel(); i++)
-      {
-          for (int channel0 = 0; channel0 < a.getNumChannels(); channel0++){
-            a.samples[channel0][i] = sin((static_cast<float> (i) / sampleRate) * freq * 2.f * M_PI);
-          }
-      }
-
-       string filePath = "sine-wave.wav"; // change this to somewhere useful for you
-        a.save ("sine-wave.wav", AudioFileFormat::Wave);
-
 }
 

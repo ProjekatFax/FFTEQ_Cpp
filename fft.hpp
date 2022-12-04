@@ -2,29 +2,17 @@
 //  https://cplusplus.com/forum/general/265589/
 
 #define _CRT_SECURE_NO_DEPRECATE
-
-#include <iostream>
-#include <algorithm> // For std::transform
-#include <string>
-#include <istream>
-#include <fstream>
 #include <cstdint>
-#include <stdio.h>
 #include <vector>
-#include <chrono>
-#include <iomanip>
 #include <complex>
-#include <cstdio>
 #include <cmath>
-#include <math.h>
-#include "string.h"
-#include "memory.h"
 
 using namespace std;
 
 const double pi = 3.14159265358979323846;
 using Complex = complex<double>;
 
+// magic
 vector<Complex> fft(vector<Complex> in)
 {
 
@@ -70,22 +58,22 @@ vector<Complex> fft(vector<Complex> in)
 			x[b] = t;
 		}
 	}
-	
+
 	return x;
-	
 }
 
-
 // inverse fft (in-place)
+// magic no2
 vector<Complex> ifft(vector<Complex> in)
 {
 	vector<Complex> x1(in);
 	size_t size = in.size();
-	for (int i = 0; i < size; i++){
+	for (int i = 0; i < size; i++)
+	{
 		x1[i] = std::conj(x1[i]);
-		//cout << x1[i] << endl;
+		// cout << x1[i] << endl;
 	}
-	
+
 	// forward fft
 	x1 = fft(x1);
 
@@ -99,8 +87,16 @@ vector<Complex> ifft(vector<Complex> in)
 	return x1;
 }
 
-void getFreq(double freq[], int n, int sampleRate)
+/*
+returns a vector with the frequencies
+
+param: 
+		n : length of the soundfile
+		sampleRate: self Explanatory
+*/
+vector<double> getFreq(int n, int sampleRate)
 {
+	vector<double> freq(n);
 	double d = 1.0 / sampleRate;
 	double val = 1.0 / (n * d);
 	int N = (n - 1) / 2 + 1;
@@ -118,17 +114,5 @@ void getFreq(double freq[], int n, int sampleRate)
 		freq[i] = -backWards * val;
 		backWards--;
 	}
+	return freq;
 }
-/*
-vector<complex<double>> normalize(vector<complex<double>> signal){
-	vector<complex<double>> out(signal);
-
-	complex<double> maxElement = *max_element(signal.begin(),signal.end());
-
-	for(int i = 0; i<signal.size(); i++){
-		out[i]/=maxElement;
-	}
-
-	return out;
-}
-*/

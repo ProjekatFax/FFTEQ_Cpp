@@ -5,6 +5,7 @@
         "cmath": "cpp",
         "complex": "cpp",
         "vector": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "xstring": "cpp"
     }
 }

@@ -12,11 +12,18 @@ using namespace std;
 		gauss_freq - array with frequences where we generate our gaussian function
 		gauss_amp - amplitude of a gauss function on a given freq
 */
-vector<int> gauss_freq{31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
+vector<uint16_t> gauss_freq{31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
 
-vector<int> gauss_amp{8, 4, 2, 0, 0, 0, 0, 0, 0, 0};
+const uint8_t BASS = 0;
+const uint8_t MID = 1;
+const uint8_t TREBLE = 2;
 
-vector<double> generate_gaussian(vector<double> freq)
+vector<vector<int>> gauss_amp{
+	{4, 3, 2, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 4, 4, 4, 4, 0, 0, 0},
+	{4, 3, 2, 0, 0, 0, 0, 2, 3, 4}};
+
+vector<double> generate_gaussian(vector<double> freq, uint8_t preset)
 {
 	vector<double> gauss(freq.size());
 	for (int i = 0; i < freq.size(); i++)
@@ -27,7 +34,7 @@ vector<double> generate_gaussian(vector<double> freq)
 	for (int i = 0; i < gauss_freq.size(); i++)
 	{
 		for (int j = 0; j < freq.size(); j++)
-			gauss[j] += gauss_amp[i] * exp(-(pow(freq[j] - gauss_freq[i], 2) / (2 * pow(gauss_freq[i] / 3, 2))));
+			gauss[j] += gauss_amp[preset][i] * exp(-(pow(freq[j] - gauss_freq[i], 2) / (2 * pow(gauss_freq[i] / 3, 2))));
 	}
 
 	return gauss;
@@ -42,11 +49,11 @@ param:
 
 */
 
-vector<complex<double>> normalizePeak(vector<complex<double>> fftArr)
+vector<complex<double>> normalizePeak(vector<complex<double>> fftArr, uint8_t preset)
 {
 	vector<complex<double>> out(fftArr.size());
 
-	int normalizeValue = *max_element(gauss_amp.begin(), gauss_amp.end()) + 1;
+	int normalizeValue = *max_element(gauss_amp[preset].begin(), gauss_amp[preset].end()) + 1;
 
 	for (int i = 0; i < fftArr.size(); i++)
 	{
@@ -93,4 +100,20 @@ vector<complex<double>> normalizePower(vector<complex<double>> modifiedFftArr, v
 	}
 
 	return out;
+}
+
+// Finding nearest number power of 2
+int resize(int samples)
+{
+	int nth_degree[21] = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824};
+
+	for (int i = 0; i < 21; i++)
+	{
+		if (samples < nth_degree[i])
+		{
+			return nth_degree[i];
+			break;
+		}
+	}
+	return samples;
 }

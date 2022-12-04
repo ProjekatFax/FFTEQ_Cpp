@@ -3,26 +3,36 @@
 #include "filter.h"
 
 using namespace std;
-// Finding nearest number power of 2
-int resize(int samples)
-{
-    int nth_degree[21] = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824};
 
-    for (int i = 0; i < 21; i++)
+int main(int argc, char **argv)
+{
+    uint8_t preset;
+    string arg1 = argv[1]; // get input file
+    string arg2;
+    if (arg1 == "-h")
     {
-        if (samples < nth_degree[i])
-        {
-            return nth_degree[i];
-            break;
-        }
+        cout << "./filename 'wavFileNam' 'presets' " << endl;
+        cout << "presets can be: bass, mid, trebble" << endl;
+        cout << "example: ./program someFile.wav bass" << endl;
+        return 0;
     }
-    return samples;
-}
 
-int main()
-{
-    const std::string filePath = "guitar_mono.wav"; // get input file
+    if(argc > 2) arg2 = argv[2];
 
+    
+
+    if (arg2 == "bass")
+        preset = BASS;
+    else if (arg2 == "mid")
+        preset = MID;
+    else if (arg2 == "treble")
+        preset = TREBLE;
+    else
+    {
+        cout << "Argument for presets incorrect" << endl;
+        cout << "call with -h argument: ./filename -h" << endl;
+        return 1;
+    }
     AudioFile<double> audioFile;              // audiFile (vector)
     vector<complex<double>> audioFileComplex; // audiofile converted to complex
                                               // so it can be used in in fft function
@@ -31,11 +41,15 @@ int main()
     size_t newSize;
     float sampleRate;
 
-    bool loadedOK = audioFile.load(filePath); // read file
+    bool loadedOK = audioFile.load(arg1); // read file
 
     if (!loadedOK)
+    {
         cout << "problem with reading the wav file";
+        cout << "call with -h argument: ./filename -h" << endl;
 
+        return 1;
+    }
     oldSize = audioFile.getNumSamplesPerChannel(); // save original size
     sampleRate = audioFile.getSampleRate();
 
@@ -62,7 +76,7 @@ int main()
     freq = getFreq(audioFile.getNumSamplesPerChannel(), audioFile.getSampleRate());
 
     // generate the gaussian function
-    gauss = generate_gaussian(freq);
+    gauss = generate_gaussian(freq, preset);
 
     // apply the gaussian function to the signal
     for (int i = 0; i < freq.size(); i++)
@@ -97,4 +111,6 @@ int main()
     }
 
     outputAudio.save("output.wav", AudioFileFormat::Wave);
+
+    return 0;
 }

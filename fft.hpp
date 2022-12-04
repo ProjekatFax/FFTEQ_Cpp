@@ -90,7 +90,7 @@ vector<Complex> ifft(vector<Complex> in)
 /*
 returns a vector with the frequencies
 
-param: 
+param:
 		n : length of the soundfile
 		sampleRate: self Explanatory
 */
@@ -100,8 +100,6 @@ vector<double> getFreq(int n, int sampleRate)
 	double d = 1.0 / sampleRate;
 	double val = 1.0 / (n * d);
 	int N = (n - 1) / 2 + 1;
-
-	cout << "d: " << d << "   val: " << val << "   N = " << N << endl;
 
 	for (int i = 0; i <= N; i++)
 	{

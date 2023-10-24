@@ -1,11 +1,14 @@
 #include "AudioFile.h"
 #include "fft.hpp"
 #include "filter.h"
-
+#include <chrono>
 using namespace std;
+using namespace std::chrono;
 
 int main(int argc, char **argv)
 {
+
+    auto startMain = high_resolution_clock::now();
     uint8_t preset;
     string arg1 = argv[1]; // get input file
     string arg2;
@@ -64,7 +67,15 @@ int main(int argc, char **argv)
     for (int i = 0; i < audioFile.getNumSamplesPerChannel(); i++)
         audioFileComplex.push_back(audioFile.samples[0][i]);
 
+    auto start = high_resolution_clock::now();
     transform = fft(audioFileComplex); // do the fft
+    auto stop = high_resolution_clock::now();
+
+    auto fftDuration = duration_cast<milliseconds>(stop - start);
+ 
+    // To get the value of duration use the count()
+    // member function on the duration object
+    cout <<"fft duration in milliseconds: "<< fftDuration.count() << endl;
 
     vector<double> freq(audioFile.getNumSamplesPerChannel());
     vector<double> gauss;
@@ -87,8 +98,14 @@ int main(int argc, char **argv)
 
     AudioFile<double> outputAudio;
 
+    start = high_resolution_clock::now();
     // do the ifft
     ifftOutput = ifft(filteredTransform);
+    stop = high_resolution_clock::now();
+
+
+    auto ifftDuration = duration_cast<milliseconds>(stop - start);
+    cout <<"ifft duration in milliseconds: "<< ifftDuration.count() << endl;
 
     // revert to the original size
     ifftOutput.resize(oldSize);
@@ -112,5 +129,13 @@ int main(int argc, char **argv)
 
     outputAudio.save("output.wav", AudioFileFormat::Wave);
 
+    auto stopMain = high_resolution_clock::now();
+
+    auto mainDuration = duration_cast<milliseconds>(stopMain - startMain);
+
+    cout <<"main duration in milliseconds: "<< mainDuration.count() << endl;
+
+
+    
     return 0;
 }

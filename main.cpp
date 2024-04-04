@@ -1,13 +1,44 @@
+#define SC_INCLUDE_FX
 #include "AudioFile.h"
 #include "fft.hpp"
 #include "filter.h"
 #include <chrono>
+#include <deque>
+#include <systemc>
+
 using namespace std;
 using namespace std::chrono;
 
+typedef sc_dt::sc_fix_fast num_t;
+typedef deque<num_t> array_t;
+typedef vector<double> orig_array_t;
+
+void copy2fix(array_t &dest, const orig_array_t &src, int W, int F)
+{
+    for (size_t i = 0; i != src.size(); ++i)
+    {
+        num_t d(W, F);
+        d = src[i];
+        if (d.overflow_flag())
+            std::cout << "Overflow in conversion.\n";
+        dest.push_back(d);
+    }
+}
+
+bool passCheck(const orig_array_t &gold, const orig_array_t &sys,
+               double delta)
+{
+    for (size_t i = 0; i != gold.size(); ++i)
+    {
+        if (std::abs(gold[i] - sys[i]) > delta)
+            return false;
+    }
+    return true;
+}
+
 int main(int argc, char **argv)
 {
-
+    array_t input;
     auto startMain = high_resolution_clock::now();
     uint8_t preset;
     string arg1 = argv[1]; // get input file
@@ -20,9 +51,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    if(argc > 2) arg2 = argv[2];
-
-    
+    if (argc > 2)
+        arg2 = argv[2];
 
     if (arg2 == "bass")
         preset = BASS;
@@ -52,7 +82,9 @@ int main(int argc, char **argv)
         cout << "call with -h argument: ./filename -h" << endl;
 
         return 1;
-    }
+    }   
+
+
     oldSize = audioFile.getNumSamplesPerChannel(); // save original size
     sampleRate = audioFile.getSampleRate();
 
@@ -61,81 +93,90 @@ int main(int argc, char **argv)
     audioFile.samples[0].resize(newSize);
     for (int i = oldSize; i < newSize; i++)
         audioFile.samples[0][i] = 0;
+    bool pass = false;
+    int W = 5;
+    const int F = 2;
+    const double error_d = 1e-3;
 
-    // convert double to complex double
-    // fill imaginary numbers with 0
-    for (int i = 0; i < audioFile.getNumSamplesPerChannel(); i++)
-        audioFileComplex.push_back(audioFile.samples[0][i]);
-
-    auto start = high_resolution_clock::now();
-    transform = fft(audioFileComplex); // do the fft
-    auto stop = high_resolution_clock::now();
-
-    auto fftDuration = duration_cast<milliseconds>(stop - start);
- 
-    // To get the value of duration use the count()
-    // member function on the duration object
-    cout <<"fft duration in milliseconds: "<< fftDuration.count() << endl;
-
-    vector<double> freq(audioFile.getNumSamplesPerChannel());
-    vector<double> gauss;
-    vector<complex<double>> filteredTransform(transform);
-    vector<complex<double>> ifftOutput;
-    vector<double> filteredData(oldSize);
-
-    // get  array with the list of frequencies
-    freq = getFreq(audioFile.getNumSamplesPerChannel(), audioFile.getSampleRate());
-
-    // generate the gaussian function
-    gauss = generate_gaussian(freq, preset);
-
-    // apply the gaussian function to the signal
-    for (int i = 0; i < freq.size(); i++)
-        filteredTransform[i] += filteredTransform[i] * gauss[i];
-
-    // normalize the signal so we dont have to much gain
-    filteredTransform = normalizePower(filteredTransform, transform);
-
-    AudioFile<double> outputAudio;
-
-    start = high_resolution_clock::now();
-    // do the ifft
-    ifftOutput = ifft(filteredTransform);
-    stop = high_resolution_clock::now();
-
-
-    auto ifftDuration = duration_cast<milliseconds>(stop - start);
-    cout <<"ifft duration in milliseconds: "<< ifftDuration.count() << endl;
-
-    // revert to the original size
-    ifftOutput.resize(oldSize);
-
-    // set to stereo
-    outputAudio.setNumChannels(2);
-
-    outputAudio.setNumSamplesPerChannel(ifftOutput.size());
-
-    // set the sampleRate to the sample rate we read in the beginning
-    outputAudio.setSampleRate(sampleRate);
-
-    // copy the contents of the ifftouput array to the outputAudio object which can than be convert to a wav file
-    for (int i = 0; i < ifftOutput.size(); i++)
+    do
     {
-        for (int channel = 0; channel < outputAudio.getNumChannels(); channel++)
+        copy2fix(input, audioFile.samples[0], W, F);
+
+        // convert double to complex double
+        // fill imaginary numbers with 0
+        for (int i = 0; i < audioFile.getNumSamplesPerChannel(); i++)
+            audioFileComplex.push_back(audioFile.samples[0][i]);
+
+        auto start = high_resolution_clock::now();
+        transform = fft(audioFileComplex); // do the fft
+        auto stop = high_resolution_clock::now();
+
+        auto fftDuration = duration_cast<milliseconds>(stop - start);
+
+        // To get the value of duration use the count()
+        // member function on the duration object
+        cout << "fft duration in milliseconds: " << fftDuration.count() << endl;
+
+        vector<double> freq(audioFile.getNumSamplesPerChannel());
+        vector<double> gauss;
+        vector<complex<double>> filteredTransform(transform);
+        vector<complex<double>> ifftOutput;
+        vector<double> filteredData(oldSize);
+
+        // get  array with the list of frequencies
+        freq = getFreq(audioFile.getNumSamplesPerChannel(), audioFile.getSampleRate());
+
+        // generate the gaussian function
+        gauss = generate_gaussian(freq, preset);
+
+        // apply the gaussian function to the signal
+        for (int i = 0; i < freq.size(); i++)
+            filteredTransform[i] += filteredTransform[i] * gauss[i];
+
+        // normalize the signal so we dont have to much gain
+        filteredTransform = normalizePower(filteredTransform, transform);
+
+        AudioFile<double> outputAudio;
+
+        start = high_resolution_clock::now();
+        // do the ifft
+        ifftOutput = ifft(filteredTransform);
+        stop = high_resolution_clock::now();
+
+        auto ifftDuration = duration_cast<milliseconds>(stop - start);
+        cout << "ifft duration in milliseconds: " << ifftDuration.count() << endl;
+
+        // revert to the original size
+        ifftOutput.resize(oldSize);
+
+        // set to stereo
+        outputAudio.setNumChannels(2);
+
+        outputAudio.setNumSamplesPerChannel(ifftOutput.size());
+
+        // set the sampleRate to the sample rate we read in the beginning
+        outputAudio.setSampleRate(sampleRate);
+
+        // copy the contents of the ifftouput array to the outputAudio object which can than be convert to a wav file
+        for (int i = 0; i < ifftOutput.size(); i++)
         {
-            outputAudio.samples[channel][i] = ifftOutput[i].real();
+            for (int channel = 0; channel < outputAudio.getNumChannels(); channel++)
+            {
+                outputAudio.samples[channel][i] = ifftOutput[i].real();
+            }
         }
-    }
 
-    outputAudio.save("output.wav", AudioFileFormat::Wave);
+        //outputAudio.save("output.wav", AudioFileFormat::Wave);
 
-    auto stopMain = high_resolution_clock::now();
+        auto stopMain = high_resolution_clock::now();
 
-    auto mainDuration = duration_cast<milliseconds>(stopMain - startMain);
+        auto mainDuration = duration_cast<milliseconds>(stopMain - startMain);
 
-    cout <<"main duration in milliseconds: "<< mainDuration.count() << endl;
+        cout << "main duration in milliseconds: " << mainDuration.count() << endl;
+        pass = passCheck(gold, sys, error_d);
+        W++;
+        input.clear();
+    } while (pass == false);
 
-
-    
     return 0;
 }

@@ -135,7 +135,24 @@ int main(int argc, char **argv)
 
     cout <<"main duration in milliseconds: "<< mainDuration.count() << endl;
 
+    // Open a text file in write mode
+    ofstream outfile(arg2 + ".txt");
 
+    // Check if the file stream is open
+    if (!outfile.is_open()) {
+        cerr << "Failed to open the file." << endl;
+        return 1;
+    }
+
+    // Iterate over the vector and write each element to the file
+    for (int i = 0; i < ifftOutput.size(); i++){
+        outfile << ifftOutput[i].real() << endl;
+    }
+
+    // Close the file
+    outfile.close();
+
+    cout << "Data written to file successfully." << endl;
     
     return 0;
 }

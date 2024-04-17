@@ -2,12 +2,10 @@
 #include "AudioFile.h"
 #include "fft.hpp"
 #include "filter.h"
-#include <chrono>
 #include <deque>
 #include <systemc>
 
 using namespace std;
-using namespace std::chrono;
 
 typedef sc_dt::sc_fix_fast num_t;
 typedef deque<num_t> array_t;
@@ -36,10 +34,47 @@ bool passCheck(const orig_array_t &gold, const orig_array_t &sys,
     return true;
 }
 
+vector<double> readFromFile(string fileName){
+    // Vector to hold the doubles read from the file
+    std::vector<double> numbers;
+
+    // Open the text file in read mode
+    std::ifstream infile("output.txt");
+
+    // Check if the file stream is open
+    if (!infile.is_open()) {
+        std::cerr << "Failed to open the file." << std::endl;
+    }
+
+    std::string line;
+    // Read the file line by line
+    while (std::getline(infile, line)) {
+        // Convert line to a double
+        std::istringstream iss(line);
+        double number;
+        if (iss >> number) {
+            // Add the number to the vector
+            numbers.push_back(number);
+        } else {
+            std::cerr << "Failed to convert line to double: " << line << std::endl;
+        }
+    }
+
+    // Close the file
+    infile.close();
+
+    // Output the numbers to verify they were read correctly
+    std::cout << "Numbers read from file:" << std::endl;
+    for (double num : numbers) {
+        std::cout << num << std::endl;
+    }
+
+    return numbers;
+}
+
 int main(int argc, char **argv)
 {
     array_t input;
-    auto startMain = high_resolution_clock::now();
     uint8_t preset;
     string arg1 = argv[1]; // get input file
     string arg2;
@@ -97,6 +132,9 @@ int main(int argc, char **argv)
     int W = 5;
     const int F = 2;
     const double error_d = 1e-3;
+    vector<double> gold = readFromFile(arg2 + ".txt");
+
+
 
     do
     {
@@ -107,16 +145,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < audioFile.getNumSamplesPerChannel(); i++)
             audioFileComplex.push_back(audioFile.samples[0][i]);
 
-        auto start = high_resolution_clock::now();
         transform = fft(audioFileComplex); // do the fft
-        auto stop = high_resolution_clock::now();
-
-        auto fftDuration = duration_cast<milliseconds>(stop - start);
-
-        // To get the value of duration use the count()
-        // member function on the duration object
-        cout << "fft duration in milliseconds: " << fftDuration.count() << endl;
-
         vector<double> freq(audioFile.getNumSamplesPerChannel());
         vector<double> gauss;
         vector<complex<double>> filteredTransform(transform);
@@ -138,13 +167,9 @@ int main(int argc, char **argv)
 
         AudioFile<double> outputAudio;
 
-        start = high_resolution_clock::now();
         // do the ifft
         ifftOutput = ifft(filteredTransform);
-        stop = high_resolution_clock::now();
 
-        auto ifftDuration = duration_cast<milliseconds>(stop - start);
-        cout << "ifft duration in milliseconds: " << ifftDuration.count() << endl;
 
         // revert to the original size
         ifftOutput.resize(oldSize);
@@ -167,12 +192,7 @@ int main(int argc, char **argv)
         }
 
         //outputAudio.save("output.wav", AudioFileFormat::Wave);
-
-        auto stopMain = high_resolution_clock::now();
-
-        auto mainDuration = duration_cast<milliseconds>(stopMain - startMain);
-
-        cout << "main duration in milliseconds: " << mainDuration.count() << endl;
+        
         pass = passCheck(gold, sys, error_d);
         W++;
         input.clear();

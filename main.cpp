@@ -1,9 +1,9 @@
 #define SC_INCLUDE_FX
+#include <systemc>
 #include "AudioFile.h"
 #include "fft.hpp"
 #include "filter.h"
 #include <deque>
-#include <systemc>
 
 using namespace std;
 
@@ -11,7 +11,7 @@ typedef sc_dt::sc_fix_fast num_t;
 typedef deque<num_t> array_t;
 typedef vector<double> orig_array_t;
 
-void copy2fix(array_t &dest, const orig_array_t &src, int W, int F)
+void copy2fix(array_t dest, const orig_array_t src, int W, int F)
 {
     for (size_t i = 0; i != src.size(); ++i)
     {
@@ -23,15 +23,18 @@ void copy2fix(array_t &dest, const orig_array_t &src, int W, int F)
     }
 }
 
-bool passCheck(const orig_array_t &gold, const orig_array_t &sys,
+bool passCheck(const orig_array_t gold, const orig_array_t sys,
                double delta)
 {
     for (size_t i = 0; i != gold.size(); ++i)
     {
-        if (std::abs(gold[i] - sys[i]) > delta)
-            return false;
+        if (std::abs(gold[i] - sys[i]) > delta){
+            cout << "error place: " << i << endl;
+            cout << "value of error: " <<  abs(gold[i] - sys[i]) << endl;
+            return true;
+        }
     }
-    return true;
+    return false;
 }
 
 vector<double> readFromFile(string fileName){
@@ -62,17 +65,10 @@ vector<double> readFromFile(string fileName){
 
     // Close the file
     infile.close();
-
-    // Output the numbers to verify they were read correctly
-    std::cout << "Numbers read from file:" << std::endl;
-    for (double num : numbers) {
-        std::cout << num << std::endl;
-    }
-
     return numbers;
 }
 
-int main(int argc, char **argv)
+int sc_main(int argc, char **argv)
 {
     array_t input;
     uint8_t preset;
@@ -113,7 +109,7 @@ int main(int argc, char **argv)
 
     if (!loadedOK)
     {
-        cout << "problem with reading the wav file";
+        cout << "problem with  reading the wav file";
         cout << "call with -h argument: ./filename -h" << endl;
 
         return 1;
@@ -129,17 +125,28 @@ int main(int argc, char **argv)
     for (int i = oldSize; i < newSize; i++)
         audioFile.samples[0][i] = 0;
     bool pass = false;
-    int W = 5;
-    const int F = 2;
+    int W = 64;
+    int F = 63;
     const double error_d = 1e-3;
-    vector<double> gold = readFromFile(arg2 + ".txt");
-
+    vector<double> sys;
+    vector<double> gold;
+    int iteration_number = 0;
 
 
     do
     {
+
         copy2fix(input, audioFile.samples[0], W, F);
 
+        if(iteration_number != 0){
+            cout << "Widt" << W << endl;
+            cout << "Fraction" << F << endl;
+        }else{
+            cout << "iteration" << iteration_number << endl;
+            cout << "calculating gold"<< endl;
+        }
+
+        
         // convert double to complex double
         // fill imaginary numbers with 0
         for (int i = 0; i < audioFile.getNumSamplesPerChannel(); i++)
@@ -187,16 +194,29 @@ int main(int argc, char **argv)
         {
             for (int channel = 0; channel < outputAudio.getNumChannels(); channel++)
             {
-                outputAudio.samples[channel][i] = ifftOutput[i].real();
+                sys.push_back(ifftOutput[i].real());
             }
+        } 
+
+        if(iteration_number != 0){
+            pass = passCheck(gold, sys, error_d);
+            W--;
+            F--;    
+        }else{
+            pass = false;
+            gold = sys;
         }
 
         //outputAudio.save("output.wav", AudioFileFormat::Wave);
         
-        pass = passCheck(gold, sys, error_d);
-        W++;
         input.clear();
+        sys.clear();
+        iteration_number++;
+
     } while (pass == false);
+
+    cout << "width: " << W + 1  << endl;
+    cout << "Fraction: " << F + 1 << endl;
 
     return 0;
 }

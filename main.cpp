@@ -268,7 +268,7 @@ int sc_main(int argc, char **argv)
             cout << "-->GOLD<--" << endl; 
             // cout <<  passCheck(sys, sys, error_delta) <<  endl; 
             gold = sys;
-            width =12;
+            width =1;
         }
         width++;
 
